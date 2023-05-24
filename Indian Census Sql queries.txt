@@ -1,0 +1,242 @@
+1) Find the census for Maharashtra and Goa.
+
+--- select * from census_table_1 where state in ("Maharashtra", "Goa");
+
+2) What is total population of India in this census?
+
+--select sum(population) as India_population from census_table_2
+
+
+3) What is Indias average growth rate in this census?
+--- select round(avg(growth_per),2) Average_growth from census_table_1;
+
+-- As the population is increasing day by day , so Indian  gov. need to be more concious about 
+it's affect on overall nature, they should get proper food, infrastructure, health services, 
+employement etc. Hence govermnet need to invest more money of the India's betterment
+-- Also goverment should impose a law on controlling the growing population.
+
+4) What is the average growth% of the each state? and which state has maximum and minimum growth rate
+-- select state, round(avg(growth_per),2) as growth_per from census_table_1
+   group by state
+   order by growth_per desc;
+-- Nagaland has maximum growth_per i.e 82.80%
+-- 'Andaman And Nicobar Islands' has minimum i.e 0.6% growth_per
+
+5) What is the average sex ratio of each state?
+-- select state,avg(sexratio) as SexRatio from census_table_1
+   group by state;
+
+6) Which state has maximum females behind every 1000 men
+    and which state has minimum females behind every 1000 men
+
+--with state_sexratio as(
+select state,avg(sexratio) as SexRatio from census_table_1
+group by state)
+select * from state_sexratio
+where SexRatio=(select max(SexRatio) from  state_sexratio)
+
+-- kerala has maximum females i.e 1080 females for every 1000  mens means 80 excess womens in kerala
+
+-with state_sexratio as(
+select state,avg(sexratio) as SexRatio from census_table_1
+group by state)
+select * from state_sexratio
+where SexRatio=(select min(SexRatio) from  state_sexratio)
+--'Dadra and Nagar Haveli' has 774 females for 1000 mens
+
+7) Is there any state which has same male female ratio i.e sex ratio?
+-- with state_sexratio as(
+   select state, avg(sexratio) as sex_ratio from census_table_1
+   group by state)
+  select * from state_sexratio
+  where sex_ratio=1000;
+-- There is no state which has 1000 females over 1000 males (i.e 1 sex ratio)
+
+8) What is the average literacy rate of each state and top 5 state which is having heighest literacy rate?
+--select state, round(avg(literacy_per),2) as literacy from census_table_1
+group by state;
+- select state, round(avg(literacy_per),2) as literacy  from census_table_1
+group by state
+order by literacy desc
+limit 5
+-----with population-------
+-- with census as (
+  select t1.district, t1.state, t1.literacy_per, t2.population from census_table_1 t1
+  inner join census_table_2 t2
+  on t1.district=t2.district 
+  and t1.state=t2.state)
+ select state, round((literacy_per),2) as literacy, round(avg(population),2) as population from census
+ group by state;
+
+9) State average literacy ratio greater than 90?
+
+--select  state , round(avg(literacy_per),2) as literacy from census_table_1
+group by state
+having literacy>90;
+
+10) What are the top 3 states which has heighest growth_per?
+- select state, round(avg(growth_per),2) as growth_per from census_table_1
+ group by state
+ order by growth_per desc limit 3
+
+
+11) What are the top 3 states which has heighest population?
+-- select state, sum(population) as population, sum(AreaKM) as areaKM from census_table_2
+group by state 
+order by population desc limit 3;
+--For these 3 states, state government should implement population policy
+-- it is also seen than area of the maharashtra >UP but still population in UP >MH.
+
+12) Which 3 states need more education facilities?
+-- select state, round(avg(literacy_per), 2) as literacy  from census_table_1
+group by state 
+order by literacy asc limit 3;
+
+13) What are the top and bottem 3 states in terms of literacy (display all them in same table)?
+-- create temporary table top3_literacy_state as (
+select state, round(avg(literacy_per), 2) as literacy from census_table_1
+group by state 
+order by literacy desc limit 3);
+
+-- create temporary table bottom3_literacy_state as (
+select state, round(avg(literacy_per), 2) as literacy from census_table_1
+group by state 
+order by literacy asc limit 3);
+
+-- select * from top3_literacy_state
+union all
+select * from bottom3_literacy_state;
+
+14) what is the census data of Maharashtra?
+-- select *  from census_table_1
+where state="Maharashtra";
+
+15) What are the top 5 districts of maharashtra having highest literacy rate?
+--select district, state, literacy_per  from census_table_1
+where state="Maharashtra" 
+order by literacy_per desc limit 5;
+
+16) which district in maharashtra has heighest literacy rate?
+--select district, state, literacy_per  from census_table_1
+where state="Maharashtra"
+and literacy_per=(select max(literacy_per) from census_table_1 where state="Maharashtra");
+
+
+17) which maharashtra district need more education awareness compaign?
+-- The district whose literacy_per<50% need education awareness compaign
+--select district, state, literacy_per from census_table_1
+where state="Maharashtra" and literacy_per<50;
+-- There is a good news that NO district in maharashtra has <50% literacy_per.
+
+18) What are the states who start with letter "A"?
+--select * from census_table_1
+where state like "A%";
+
+19) Give the population of all the districts MH state and rank them per population in increasing order?
+--select *, rank() over(order by population desc) as population_rank from census_table_2
+where state="Maharashtra";
+
+20) Find the total number of males and females in each state?
+--
+with male_female_data as (
+with males as (
+select t1.district, t1.state,t1.sexratio, t2.population,
+round((t2.population/(1+t1.sexratio/1000)),0) as  males from census_table_1 t1
+inner join census_table_2 t2
+on t1.district=t2.district
+and t1.state=t2.state)
+select *, (population-males) as females from males)
+select state,sum(population),  sum(males) as males, sum(females) as females from male_female_data 
+group by state;
+
+
+21) Find the number of literate people and illetrate people in each states?
+--   with literate_population as (
+select t1.district, t1.state,round(((literacy_per/100)*population),0) as literate,  t2.population  from census_table_1 t1
+inner join census_table_2 t2
+on t1.district=t2.district
+and t1.state=t2.state)
+select district, state, sum(literate) as literate_people, sum(population) as total_state_population from literate_population
+group by state;
+
+22) what was the population of the previous census of each state?
+-- 
+with old_district_population as(
+select t1.district, t1.state, t1.growth_per, t2.population, round((t2.population/(1+growth_per*0.01)),0) as old_population
+from census_table_1 t1
+inner join 
+census_table_2 t2 
+on t1.district=t2.district
+and t1.state=t2.state)
+select state, sum(population) as new_population, sum(old_population) as old_population from old_district_population
+group by state;
+
+23) What is the total population of INDIA in Current and previous census?
+--
+with old_district_population as(
+select t1.district, t1.state, t1.growth_per, t2.population, round((t2.population/(1+growth_per*0.01)),0) as old_population
+from census_table_1 t1
+inner join 
+census_table_2 t2 
+on t1.district=t2.district
+and t1.state=t2.state)
+select sum(population) as new_population, sum(old_population) as old_pupulation from old_district_population
+
+24) List down the largest states of india as per area.
+-- select state, sum(AreaKM) as area_occupied from census_table_2 
+group by state
+order by area_occupied desc;
+
+
+25) Top 3 districts from each states which has highest literacy ratio?
+---
+with literacy_order as (
+select state,district, literacy_per, rank() over(partition by state order by literacy_per desc) as Literacy_rank
+from census_table_1)
+select * from literacy_order where literacy_rank  in (1,2,3);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
